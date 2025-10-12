@@ -36,3 +36,21 @@ class FlowSimulator:
         )
 
         return self.raygun.get_sequences_from_fixed(xt, lengths)
+
+class ValFlowSimulator:
+    def __init__(
+        self, velocity_model, guidance_scale=0.0, t_steps=100
+    ):
+        self.velocity_model = velocity_model.eval()
+        self.guidance_scale = guidance_scale
+        self.t_steps = t_steps
+        self.solver = ODESolver(self.velocity_model, self.guidance_scale)
+
+    @torch.no_grad()
+    def sample(
+        self, condition: torch.Tensor,
+    ) -> torch.Tensor:
+        x0 = torch.randn_like(condition)
+        xt = self.solver.solve(x0, self.t_steps, condition)
+
+        return xt

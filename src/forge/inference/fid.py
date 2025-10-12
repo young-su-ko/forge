@@ -12,14 +12,11 @@ def frechet_distance(mu_x: Tensor, sigma_x: Tensor, mu_y: Tensor, sigma_y: Tenso
     return a + b - 2 * c
 
 class FIDCalculator:
-    def __init__(self, reference_path: Path, device: torch.device):
-        self.reference_stat_dict = torch.load(reference_path).to(device)
+    def __init__(self, reference_path: Path):
+        self.reference_stat_dict = torch.load(reference_path)
         self.reference_mu = self.reference_stat_dict["mu"]
         self.reference_sigma = self.reference_stat_dict["sigma"]
-        self.device = device
 
-    def __call__(self, sample_stats: dict[torch.Tensor]) -> Tensor:
-        sample_mu = sample_stats["mu"]
-        sample_sigma = sample_stats["sigma"]
+    def compute(self, sample_mu, sample_sigma) -> Tensor:
         return frechet_distance(self.reference_mu, self.reference_sigma, sample_mu, sample_sigma)
     

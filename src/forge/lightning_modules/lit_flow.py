@@ -7,7 +7,7 @@ from hydra.utils import instantiate
 import copy
 
 from forge.inference.fid import FIDCalculator
-
+from forge.inference.flow_simulator import ValFlowSimulator
 
 class LitFlow(pl.LightningModule):
     def __init__(self, config: DictConfig):
@@ -21,8 +21,14 @@ class LitFlow(pl.LightningModule):
             p.requires_grad_(False)
 
         self.fid_calculator = FIDCalculator(
-            reference_path=config.lightning_module.fid_reference_path, device=self.device
+            reference_path=config.lightning_module.fid_reference_path
         )
+        self.val_simulator = ValFlowSimulator(
+            self.model,
+            guidance_scale=config.lightning_module.guidance_scale,
+            t_steps=config.lightning_module.t_steps,
+        )
+        self.val_samples = []
         self.save_hyperparameters()
 
     def _shared_step(self, batch, prefix: str):
@@ -41,10 +47,29 @@ class LitFlow(pl.LightningModule):
         return self._shared_step(batch, "train")
 
     def validation_step(self, batch, batch_idx):
-        return self._shared_step(batch, "val")
+        loss = self._shared_step(batch, "val")
+        x1, c = batch
+        xt = self.val_simulator.sample(c)
+        xt_pooled = xt.mean(dim=1)  # (bs, raygun_dim)
+        self.val_samples.append(xt_pooled)
+        return loss
 
     def on_validation_start(self):
         self.swap_to_ema()
+        self.fid_calculator.reference_mu = self.fid_calculator.reference_mu.to(self.device)
+        self.fid_calculator.reference_sigma = self.fid_calculator.reference_sigma.to(self.device)
+        self.val_simulator.velocity_model = self.model
+        self.val_samples.clear()
+
+    def on_validation_epoch_end(self):
+        samples = torch.cat(self.val_samples, dim=0).to(self.device)  # (bs, raygun_dim)
+
+        sample_mu = samples.mean(dim=0)
+        sample_sigma = torch.cov(samples.T)
+
+        fid_value = self.fid_calculator.compute(sample_mu, sample_sigma)
+
+        self.log("val_FID", fid_value, prog_bar=True, sync_dist=True)
 
     def on_validation_end(self):
         self.swap_to_model()
