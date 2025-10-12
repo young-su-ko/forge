@@ -1,0 +1,44 @@
+defaults:
+  - _self_
+
+seed: 47
+
+wandb:
+  project: forge
+  run_id: null
+
+checkpoint_path: null
+
+model:
+  _target_: forge.models._dit.FlagDiT
+  input_dim: 1280
+  hidden_dim: 1280
+  mlp_ratio: 2.0
+  num_heads: 20
+  num_layers: 20
+  conditioning_dropout: 0.1
+
+lightning_module:
+  fid_reference_path: ...
+  ema_decay: 0.9999
+  learning_rate: 1e-4
+
+trainer:
+  max_steps: 500_000
+  val_check_interval: 0.20
+  limit_val_batches: 10
+  accelerator: auto
+  devices: auto
+  precision: 32
+  log_every_n_steps: 1
+  strategy: ddp
+
+datamodule:
+  train_csv_path: data/train_hq_x_removed_swapped.csv.gz
+  val_csv_path: data/val_hq_swapped.csv.gz
+  lmdb_path: /scratch/young/raygun_hq_embeddings_numpy.lmdb
+  batch_size: 500
+  num_workers: 8
+  pin_memory: true
+  prefetch_factor: 4
+  persistent_workers: true
