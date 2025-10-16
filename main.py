@@ -28,8 +28,8 @@ def main(config: DictConfig):
     callbacks = [
         ModelCheckpoint(
             dirpath=checkpoint_dir,
-            filename="{epoch:02d}-{val_loss:.2f}",
-            monitor="val_loss",
+            filename="{epoch:02d}-{val_FID:.2f}",
+            monitor="val_FID",
             mode="min",
             save_top_k=3,
         ),

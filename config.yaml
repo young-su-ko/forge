@@ -4,7 +4,7 @@ defaults:
 seed: 47
 
 wandb:
-  project: forge
+  project: forge-v1
   run_id: null
 
 checkpoint_path: null
@@ -23,14 +23,14 @@ lightning_module:
   learning_rate: 1e-4
 
 validation:
-  fid_reference_path: data/10k_ref.pt
+  fid_reference_path: data/30k_ref.pt
   t_steps: 100
   guidance_scale: 1.0
 
 trainer:
-  max_steps: 500_000
-  val_check_interval: 0.20
-  limit_val_batches: 10
+  max_steps: 1_000_000
+  val_check_interval: 0.50
+  limit_val_batches: 30
   accelerator: auto
   devices: auto
   precision: 32

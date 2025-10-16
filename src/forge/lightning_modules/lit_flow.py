@@ -21,12 +21,12 @@ class LitFlow(pl.LightningModule):
             p.requires_grad_(False)
 
         self.fid_calculator = FIDCalculator(
-            reference_path=config.lightning_module.fid_reference_path
+            reference_path=config.validation.fid_reference_path
         )
         self.val_simulator = ValFlowSimulator(
             self.model,
-            guidance_scale=config.lightning_module.guidance_scale,
-            t_steps=config.lightning_module.t_steps,
+            guidance_scale=config.validation.guidance_scale,
+            t_steps=config.validation.t_steps,
         )
         self.val_samples = []
         self.save_hyperparameters()
