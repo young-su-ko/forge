@@ -5,9 +5,11 @@ seed: 47
 
 wandb:
   project: forge-v1
-  run_id: null
+  # run_id: 004e57f2
+  run_id: 9d5dca49
 
-checkpoint_path: null
+# checkpoint_path: /new-stg/home/young/forge/checkpoints/004e57f2/epoch=63-val_FID=0.47.ckpt
+checkpoint_path: /new-stg/home/young/forge/checkpoints/9d5dca49/epoch=13-val_FID=0.4935.ckpt
 
 model:
   _target_: forge.models._dit.FlagDiT
@@ -17,6 +19,8 @@ model:
   num_heads: 20
   num_layers: 20
   conditioning_dropout: 0.1
+  length_mean: 441.252
+  length_std: 401.99
 
 lightning_module:
   ema_decay: 0.9999
@@ -28,8 +32,8 @@ validation:
   guidance_scale: 1.0
 
 trainer:
-  max_steps: 1_000_000
-  val_check_interval: 0.50
+  max_steps: 2_000_000
+  #val_check_interval: 1
   limit_val_batches: 30
   accelerator: auto
   devices: auto
@@ -40,9 +44,10 @@ trainer:
 datamodule:
   train_csv_path: data/train_hq_x_removed_swapped.csv.gz
   val_csv_path: data/val_hq_swapped.csv.gz
+  seq_len_path: data/protein_lengths.csv.gz
   lmdb_path: /scratch/young/raygun_hq_embeddings_numpy.lmdb
   batch_size: 500
-  num_workers: 8
+  num_workers: 1
   pin_memory: true
   prefetch_factor: 4
   persistent_workers: true

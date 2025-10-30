@@ -1,7 +1,7 @@
 import torch
 
 from forge.inference.solvers import ODESolver
-
+from forge.inference.length_predictor import MLP
 
 class FlowSimulator:
     def __init__(
@@ -28,13 +28,14 @@ class FlowSimulator:
             condition = torch.zeros(
                 n_samples, 50, 1280, device=self.device
             )  # Fixed shape for Raygun embeddings
-
-        x0 = torch.randn_like(condition)
-        xt = self.solver.solve(x0, self.t_steps, condition)
+        
         lengths = torch.full(
-            (n_samples,), fill_value=length, device=self.device, dtype=torch.long
+            (n_samples,), fill_value=length, device=self.device
         )
+        x0 = torch.randn_like(condition)
+        xt = self.solver.solve(x0, self.t_steps, condition, lengths)
 
+        lengths = lengths.long()
         return self.raygun.get_sequences_from_fixed(xt, lengths)
 
 class ValFlowSimulator:
@@ -45,12 +46,24 @@ class ValFlowSimulator:
         self.guidance_scale = guidance_scale
         self.t_steps = t_steps
         self.solver = ODESolver(self.velocity_model, self.guidance_scale)
+        self.length_predictor = MLP(input_dim=1280, hidden_dim=640, output_dim=1)
+        self.length_predictor.load_state_dict(
+            torch.load("/new-stg/home/young/raygun-length/length_predictor_weights.pt", map_location='cpu')
+        )
+        self.length_predictor.eval()
+        self.length_mean = 441.252
+        self.length_std = 401.99
 
     @torch.no_grad()
     def sample(
-        self, condition: torch.Tensor,
+        self, condition: torch.Tensor, length: torch.Tensor
     ) -> torch.Tensor:
         x0 = torch.randn_like(condition)
-        xt = self.solver.solve(x0, self.t_steps, condition)
+        xt = self.solver.solve(x0, self.t_steps, condition, length)
 
-        return xt
+        normalized_predicted_lengths = self.length_predictor(torch.mean(xt, dim=1))
+        predicted_lengths = (
+            normalized_predicted_lengths * self.length_std + self.length_mean
+        )
+
+        return xt, predicted_lengths

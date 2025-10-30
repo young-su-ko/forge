@@ -28,7 +28,7 @@ def main(config: DictConfig):
     callbacks = [
         ModelCheckpoint(
             dirpath=checkpoint_dir,
-            filename="{epoch:02d}-{val_FID:.2f}",
+            filename="{epoch:02d}-{val_FID:.4f}",
             monitor="val_FID",
             mode="min",
             save_top_k=3,

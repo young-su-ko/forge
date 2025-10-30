@@ -10,8 +10,9 @@ from omegaconf import DictConfig
 
 
 class InteractionDataset(Dataset):
-    def __init__(self, interaction_csv_path: Path):
+    def __init__(self, interaction_csv_path: Path, seq_len_path: Path):
         self.interactions = self._load_interactions(interaction_csv_path)
+        self.lengths = self._load_lengths(seq_len_path)
 
     def _load_interactions(self, path):
         interactions = []
@@ -21,12 +22,22 @@ class InteractionDataset(Dataset):
                 interactions.append(row)
         return interactions
 
+    def _load_lengths(self, path):
+        lengths = {}
+        with gzip.open(path, "rt") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                protein_id, length = row
+                lengths[protein_id] = int(length)
+        return lengths
+
     def __len__(self):
         return len(self.interactions)
 
     def __getitem__(self, idx):
         z_protein_id, conditioning_protein_id = self.interactions[idx]
-        return z_protein_id, conditioning_protein_id
+        z_length = self.lengths[z_protein_id]
+        return z_protein_id, conditioning_protein_id, z_length
 
 
 class LMDBCollator:
@@ -46,7 +57,7 @@ class LMDBCollator:
                 meminit=False,
             )
 
-        z_protein_ids, conditioning_protein_ids = zip(*batch)
+        z_protein_ids, conditioning_protein_ids, z_lengths = zip(*batch)
 
         with self.env.begin(write=False) as txn:
             z_embeddings = [
@@ -66,7 +77,7 @@ class LMDBCollator:
                 for c in conditioning_protein_ids
             ]
 
-        return torch.stack(z_embeddings), torch.stack(c_embeddings)
+        return torch.stack(z_embeddings), torch.stack(c_embeddings), torch.tensor(z_lengths, dtype=torch.float32)
 
 
 class ForgeDataModule(pl.LightningDataModule):
@@ -75,6 +86,7 @@ class ForgeDataModule(pl.LightningDataModule):
         self.train_csv_path = Path(cfg.train_csv_path)
         self.val_csv_path = Path(cfg.val_csv_path)
         self.lmdb_path = Path(cfg.lmdb_path)
+        self.seq_len_path = Path(cfg.seq_len_path)
         self.batch_size = cfg.batch_size
         self.num_workers = cfg.num_workers
         self.pin_memory = cfg.pin_memory
@@ -82,8 +94,8 @@ class ForgeDataModule(pl.LightningDataModule):
         self.prefetch_factor = cfg.prefetch_factor
 
     def setup(self, stage: str):
-        self.train_dataset = InteractionDataset(self.train_csv_path)
-        self.val_dataset = InteractionDataset(self.val_csv_path)
+        self.train_dataset = InteractionDataset(self.train_csv_path, self.seq_len_path)
+        self.val_dataset = InteractionDataset(self.val_csv_path, self.seq_len_path)
 
     def train_dataloader(self):
         return DataLoader(

@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 from torch.optim import AdamW
 from hydra.utils import instantiate
 import copy
+import torchmetrics
 
 from forge.inference.fid import FIDCalculator
 from forge.inference.flow_simulator import ValFlowSimulator
@@ -29,16 +30,18 @@ class LitFlow(pl.LightningModule):
             t_steps=config.validation.t_steps,
         )
         self.val_samples = []
+        self.val_pearson = torchmetrics.PearsonCorrCoef()
+        self.val_spearman = torchmetrics.SpearmanCorrCoef()
         self.save_hyperparameters()
 
     def _shared_step(self, batch, prefix: str):
-        x1, c = batch
+        x1, c, l = batch
         x0 = torch.randn_like(x1)  # (bs, L, raygun_dim)
         t = torch.rand(x1.shape[0], device=x1.device)
         xt = (1 - t)[:, None, None] * x0 + t[:, None, None] * x1  # (bs, L, raygun_dim)
         dx_t = x1 - x0
 
-        u_t = self.model(xt, t, c)
+        u_t = self.model(xt, t, c, l)
         loss = self.criterion(u_t, dx_t)
         self.log(f"{prefix}_loss", loss, prog_bar=True, sync_dist=True)
         return loss
@@ -48,10 +51,14 @@ class LitFlow(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss = self._shared_step(batch, "val")
-        x1, c = batch
-        xt = self.val_simulator.sample(c)
+        x1, c, l = batch
+        xt, predicted_lengths = self.val_simulator.sample(c, l)
         xt_pooled = xt.mean(dim=1)  # (bs, raygun_dim)
         self.val_samples.append(xt_pooled)
+
+
+        self.val_pearson.update(predicted_lengths, l)
+        self.val_spearman.update(predicted_lengths, l)
         return loss
 
     def on_validation_start(self):
@@ -59,6 +66,10 @@ class LitFlow(pl.LightningModule):
         self.fid_calculator.reference_mu = self.fid_calculator.reference_mu.to(self.device)
         self.fid_calculator.reference_sigma = self.fid_calculator.reference_sigma.to(self.device)
         self.val_simulator.velocity_model = self.model
+        self.val_simulator.length_predictor.to(self.device)
+        
+        self.val_pearson.reset()
+        self.val_spearman.reset()
         self.val_samples.clear()
 
     def on_validation_epoch_end(self):
@@ -68,8 +79,13 @@ class LitFlow(pl.LightningModule):
         sample_sigma = torch.cov(samples.T)
 
         fid_value = self.fid_calculator.compute(sample_mu, sample_sigma)
+        pearson = self.val_pearson.compute()
+        spearman = self.val_spearman.compute()
 
+        self.log("val_pearson", pearson, prog_bar=True, sync_dist=True)
+        self.log("val_spearman", spearman, prog_bar=True, sync_dist=True)
         self.log("val_FID", fid_value, prog_bar=True, sync_dist=True)
+
 
     def on_validation_end(self):
         self.swap_to_model()

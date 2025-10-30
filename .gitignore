@@ -19,6 +19,6 @@ wandb/
 
 checkpoints/
 extract_ckpt.py
-generate.py
 generated_seqs/
-forge-e48/
+forge-e*/
+generate.py

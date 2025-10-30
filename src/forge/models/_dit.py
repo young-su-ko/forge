@@ -6,7 +6,7 @@ import json
 
 from forge.layers._dit_block import modulate, FlagDiTBlock
 from forge.layers._time_embedder import TimestepEmbedder
-
+from forge.layers._length_embedder import LengthEmbedder
 
 class FinalLayer(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int):
@@ -33,6 +33,8 @@ class FlagDiT(nn.Module):
         num_heads: int,
         num_layers: int,
         conditioning_dropout: float,
+        length_mean: float,
+        length_std: float,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -40,10 +42,12 @@ class FlagDiT(nn.Module):
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.mlp_ratio = mlp_ratio
+        self.register_buffer("length_mean", torch.tensor(length_mean, dtype=torch.float32))
+        self.register_buffer("length_std", torch.tensor(length_std, dtype=torch.float32))
 
         self.conditioning_dropout = conditioning_dropout
         self.timestep_embedder = TimestepEmbedder(input_dim)
-
+        self.length_embedder = LengthEmbedder(input_dim)
         self.blocks = nn.ModuleList(
             [FlagDiTBlock(input_dim, num_heads, mlp_ratio) for _ in range(num_layers)]
         )
@@ -76,13 +80,14 @@ class FlagDiT(nn.Module):
         nn.init.constant_(self.final_layer.linear.bias, 0)
 
     def forward(
-        self, x: torch.Tensor, t: torch.Tensor, c: torch.Tensor
+        self, x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, l: torch.Tensor
     ) -> torch.Tensor:
         """
         Args:
-            x: (bs, L, raygun_dim)
-            t: (bs, )
-            c: (bs, L, raygun_dim)
+            x: (bs, L, raygun_dim); Raygun latent
+            t: (bs, ); time
+            c: (bs, L, raygun_dim); target conditioning
+            l: (bs, ); sequence length conditioning
         Returns:
             u_t^theta(x|c): (bs, L, raygun_dim)
         """
@@ -93,7 +98,7 @@ class FlagDiT(nn.Module):
             c = c * mask
 
         c_pooled = torch.mean(c, dim=1)  # (bs, dim)
-        c_pooled = self.timestep_embedder(t) + c_pooled
+        c_pooled = self.timestep_embedder(t) + c_pooled + self.length_embedder(l, self.length_mean, self.length_std)
 
         for block in self.blocks:
             x = block(x, c, c_pooled)
@@ -108,7 +113,7 @@ class FlagDiT(nn.Module):
         Load a DiT model from a Hugging Face Hub repo.
 
         Args:
-            repo_id (str): e.g. "yk0/forge-small"
+            repo_id (str): e.g. "yk0/forge-v0"
             revision (str): branch, tag, or commit (default: "main")
             map_location: device for weights ("cpu" or "cuda")
         """
