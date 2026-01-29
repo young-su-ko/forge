@@ -2,7 +2,7 @@ import torch
 import json
 import os
 
-from raygun.pretrained import raygun_4_4mil_800M
+from raygun.pretrained import raygun_8_8mil_800M
 from forge.models._dit import FlagDiT
 from forge.inference.esm_encoder import ESMEncoder
 from forge.inference.flow_simulator import FlowSimulator
@@ -15,7 +15,7 @@ class InferenceWrapper:
         self.device = device
         self.velocity_model = velocity_model.eval().to(device)
         self.esm_encoder = ESMEncoder(self.device)
-        self.raygun = raygun_4_4mil_800M().eval().to(self.device)
+        self.raygun = raygun_8_8mil_800M().eval().to(self.device)
         self.flow_simulator = FlowSimulator(
             self.velocity_model,
             self.raygun,

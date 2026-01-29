@@ -33,8 +33,8 @@ class FlagDiT(nn.Module):
         num_heads: int,
         num_layers: int,
         conditioning_dropout: float,
-        length_mean: float,
-        length_std: float,
+        # length_mean: float,
+        # length_std: float,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -42,8 +42,8 @@ class FlagDiT(nn.Module):
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.mlp_ratio = mlp_ratio
-        self.register_buffer("length_mean", torch.tensor(length_mean, dtype=torch.float32))
-        self.register_buffer("length_std", torch.tensor(length_std, dtype=torch.float32))
+        # self.register_buffer("length_mean", torch.tensor(length_mean, dtype=torch.float32))
+        # self.register_buffer("length_std", torch.tensor(length_std, dtype=torch.float32))
 
         self.conditioning_dropout = conditioning_dropout
         self.timestep_embedder = TimestepEmbedder(input_dim)
@@ -98,7 +98,7 @@ class FlagDiT(nn.Module):
             c = c * mask
 
         c_pooled = torch.mean(c, dim=1)  # (bs, dim)
-        c_pooled = self.timestep_embedder(t) + c_pooled + self.length_embedder(l, self.length_mean, self.length_std)
+        c_pooled = self.timestep_embedder(t) + c_pooled + self.length_embedder(l)
 
         for block in self.blocks:
             x = block(x, c, c_pooled)

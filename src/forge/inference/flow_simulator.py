@@ -35,35 +35,39 @@ class FlowSimulator:
         x0 = torch.randn_like(condition)
         xt = self.solver.solve(x0, self.t_steps, condition, lengths)
 
-        lengths = lengths.long()
+        lengths = lengths.long()     
         return self.raygun.get_sequences_from_fixed(xt, lengths)
 
 class ValFlowSimulator:
     def __init__(
         self, velocity_model, guidance_scale=0.0, t_steps=100
     ):
-        self.velocity_model = velocity_model.eval()
+        self.velocity_model = velocity_model
         self.guidance_scale = guidance_scale
         self.t_steps = t_steps
         self.solver = ODESolver(self.velocity_model, self.guidance_scale)
         self.length_predictor = MLP(input_dim=1280, hidden_dim=640, output_dim=1)
         self.length_predictor.load_state_dict(
-            torch.load("/new-stg/home/young/raygun-length/length_predictor_weights.pt", map_location='cpu')
+            torch.load("/new-stg/home/young/raygun-length/length_predictor_weights_8_8.pt", map_location='cpu')
         )
         self.length_predictor.eval()
-        self.length_mean = 441.252
-        self.length_std = 401.99
+    def set_velocity_model(self, velocity_model):
+        self.velocity_model = velocity_model
+        self.velocity_model.eval()
+        self.solver = ODESolver(self.velocity_model, self.guidance_scale)
 
     @torch.no_grad()
     def sample(
-        self, condition: torch.Tensor, length: torch.Tensor
+        self, condition: torch.Tensor, length: torch.Tensor, unconditional: bool = False
     ) -> torch.Tensor:
+        if unconditional:
+            # Create zero condition for unconditional generation
+            condition = torch.zeros_like(condition)
+        
         x0 = torch.randn_like(condition)
         xt = self.solver.solve(x0, self.t_steps, condition, length)
 
         normalized_predicted_lengths = self.length_predictor(torch.mean(xt, dim=1))
-        predicted_lengths = (
-            normalized_predicted_lengths * self.length_std + self.length_mean
-        )
+        predicted_lengths = torch.exp(normalized_predicted_lengths).squeeze(-1)
 
         return xt, predicted_lengths

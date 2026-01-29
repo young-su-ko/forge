@@ -28,11 +28,19 @@ def main(config: DictConfig):
     callbacks = [
         ModelCheckpoint(
             dirpath=checkpoint_dir,
-            filename="{epoch:02d}-{val_FID:.4f}",
-            monitor="val_FID",
+            filename="fid_conditional_{epoch:02d}-{val_FID_conditional:.4f}",
+            monitor="val_FID_conditional",
             mode="min",
-            save_top_k=3,
+            save_top_k=2,
         ),
+        ModelCheckpoint(
+            dirpath=checkpoint_dir,
+            filename="fid_unconditional_{epoch:02d}-{val_FID_unconditional:.4f}",
+            monitor="val_FID_unconditional",
+            mode="min",
+            save_top_k=2,
+        ),
+
         LearningRateMonitor(logging_interval="step"),
     ]
 

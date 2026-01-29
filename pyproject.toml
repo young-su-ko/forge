@@ -12,7 +12,7 @@ dependencies = [
     "lmdb>=1.7.3",
     "pytest>=8.4.1",
     "pytorch-lightning>=2.5.2",
-    "raygun",
+    "raygun==0.2.5",
     "ruff>=0.12.7",
     "torch>=2.7.1",
     "tqdm>=4.67.1",

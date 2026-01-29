@@ -1139,8 +1139,8 @@ wheels = [
 
 [[package]]
 name = "raygun"
-version = "0.2.3"
-source = { git = "https://github.com/rohitsinghlab/raygun.git#4ce878e8a9a7e7cbabb658819ae57b5d7ee1ac6b" }
+version = "0.2.5"
+source = { git = "https://github.com/rohitsinghlab/raygun.git#7a0e8b318e0c81921d43c979e7be74c3cd7abc66" }
 dependencies = [
     { name = "biopython" },
     { name = "einops" },

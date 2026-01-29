@@ -4,12 +4,10 @@ defaults:
 seed: 47
 
 wandb:
-  project: forge-v1
-  # run_id: 004e57f2
-  run_id: 9d5dca49
+  project: forge-v1.5
+  run_id: null
 
-# checkpoint_path: /new-stg/home/young/forge/checkpoints/004e57f2/epoch=63-val_FID=0.47.ckpt
-checkpoint_path: /new-stg/home/young/forge/checkpoints/9d5dca49/epoch=13-val_FID=0.4935.ckpt
+checkpoint_path: null
 
 model:
   _target_: forge.models._dit.FlagDiT
@@ -18,23 +16,21 @@ model:
   mlp_ratio: 2.0
   num_heads: 20
   num_layers: 20
-  conditioning_dropout: 0.1
-  length_mean: 441.252
-  length_std: 401.99
+  conditioning_dropout: 0.3
 
 lightning_module:
   ema_decay: 0.9999
   learning_rate: 1e-4
 
 validation:
-  fid_reference_path: data/30k_ref.pt
+  fid_reference_path: /new-stg/home/young/forge_v1_old/data/10k_ref_8_8.pt
   t_steps: 100
   guidance_scale: 1.0
+  fid_sample_size: 10000
 
 trainer:
   max_steps: 2_000_000
-  #val_check_interval: 1
-  limit_val_batches: 30
+  limit_val_batches: 50
   accelerator: auto
   devices: auto
   precision: 32
@@ -42,10 +38,10 @@ trainer:
   strategy: ddp
 
 datamodule:
-  train_csv_path: data/train_hq_x_removed_swapped.csv.gz
-  val_csv_path: data/val_hq_swapped.csv.gz
-  seq_len_path: data/protein_lengths.csv.gz
-  lmdb_path: /scratch/young/raygun_hq_embeddings_numpy.lmdb
+  train_csv_path: /new-stg/home/young/forge_v1_old/data/train_hq_x_removed_swapped.csv.gz
+  val_csv_path: /new-stg/home/young/forge_v1_old/data/val_hq_swapped.csv.gz
+  seq_len_path: /new-stg/home/young/forge_v1_old/data/protein_lengths.csv.gz
+  lmdb_path: /scratch/young/raygun_hq_8_8_numpy.lmdb
   batch_size: 500
   num_workers: 1
   pin_memory: true
