@@ -24,8 +24,8 @@ lightning_module:
 
 validation:
   fid_reference_path: /new-stg/home/young/forge_v1_old/data/10k_ref_8_8.pt
-  t_steps: 100
-  guidance_scale: 1.0
+  t_steps: 50
+  guidance_scale: 3.0
   fid_sample_size: 10000
 
 trainer:

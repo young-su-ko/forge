@@ -55,6 +55,7 @@ class InferenceWrapper:
             ckpt_path = os.path.join(repo_or_dir, "pytorch_model.bin")
         else:  # fallback to HF Hub
             from huggingface_hub import hf_hub_download
+
             config_path = hf_hub_download(repo_or_dir, "config.json")
             ckpt_path = hf_hub_download(repo_or_dir, "pytorch_model.bin")
 

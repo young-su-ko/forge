@@ -8,16 +8,24 @@ class ODESolver:
         self.guidance_scale = guidance_scale
 
     def _velocity(
-        self, x: torch.Tensor, t: torch.Tensor, condition: torch.Tensor, length: torch.Tensor
+        self,
+        x: torch.Tensor,
+        t: torch.Tensor,
+        condition: torch.Tensor,
+        length: torch.Tensor,
     ) -> torch.Tensor:
         if self.guidance_scale == 0.0:
             return self.velocity_model(x, t, condition, length)
         v_cond = self.velocity_model(x, t, condition, length)
         v_uncond = self.velocity_model(x, t, torch.zeros_like(condition), length)
-        return (1-self.guidance_scale) * v_uncond + self.guidance_scale * v_cond
+        return (1 - self.guidance_scale) * v_uncond + self.guidance_scale * v_cond
 
     def solve(
-        self, x0: torch.Tensor, t_steps: int, condition: torch.Tensor, length: torch.Tensor
+        self,
+        x0: torch.Tensor,
+        t_steps: int,
+        condition: torch.Tensor,
+        length: torch.Tensor,
     ) -> torch.Tensor:
         x = x0
         dt = 1.0 / t_steps

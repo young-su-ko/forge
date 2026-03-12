@@ -8,6 +8,7 @@ from forge.layers._dit_block import modulate, FlagDiTBlock
 from forge.layers._time_embedder import TimestepEmbedder
 from forge.layers._length_embedder import LengthEmbedder
 
+
 class FinalLayer(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int):
         super().__init__()
@@ -33,7 +34,6 @@ class FlagDiT(nn.Module):
         num_heads: int,
         num_layers: int,
         conditioning_dropout: float,
-
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -41,7 +41,7 @@ class FlagDiT(nn.Module):
         self.num_heads = num_heads
         self.num_layers = num_layers
         self.mlp_ratio = mlp_ratio
- 
+
         self.conditioning_dropout = conditioning_dropout
         self.timestep_embedder = TimestepEmbedder(input_dim)
         self.length_embedder = LengthEmbedder(input_dim)

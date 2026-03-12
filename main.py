@@ -27,10 +27,10 @@ def main(config: DictConfig):
 
     callbacks = [
         ModelCheckpoint(
-        dirpath=checkpoint_dir,
-        filename="last_checkpoint",
-        save_last=True,
-        save_top_k=0,
+            dirpath=checkpoint_dir,
+            filename="last_checkpoint",
+            save_last=True,
+            save_top_k=0,
         ),
         ModelCheckpoint(
             dirpath=checkpoint_dir,
@@ -46,7 +46,6 @@ def main(config: DictConfig):
             mode="min",
             save_top_k=2,
         ),
-
         LearningRateMonitor(logging_interval="step"),
     ]
 

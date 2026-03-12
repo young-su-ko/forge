@@ -77,7 +77,11 @@ class LMDBCollator:
                 for c in conditioning_protein_ids
             ]
 
-        return torch.stack(z_embeddings), torch.stack(c_embeddings), torch.tensor(z_lengths, dtype=torch.float32)
+        return (
+            torch.stack(z_embeddings),
+            torch.stack(c_embeddings),
+            torch.tensor(z_lengths, dtype=torch.float32),
+        )
 
 
 class ForgeDataModule(pl.LightningDataModule):
